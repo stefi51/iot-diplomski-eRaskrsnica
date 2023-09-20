@@ -1,26 +1,23 @@
-﻿using DeviceSimulation.Devices;
+﻿using DeviceSimulation.DTOs;
 using Microsoft.Azure.Devices.Client;
 using Microsoft.Extensions.Options;
-using System.Text;
-using System.Text.Json;
 
-namespace DeviceSimulation.DTOs;
+namespace DeviceSimulation.Devices;
 
 public abstract class Device
 {
-    public string DeviceId { get; set; }
+    public string DeviceId { get; init; }
     public bool IsActive { get; set; }
     protected DeviceClient DeviceClient { get; init; }
 
-    public Device(IOptions<BaseSettingsDto> options)
-    {     
+    protected Device(IOptions<BaseSettingsDto> options)
+    {
+        DeviceId = options.Value.DeviceId;
         DeviceClient = DeviceClient.CreateFromConnectionString(options.Value.ConnectionString, options.Value.TransportType);
-        
         StartDeviceAsync();
     }
 
-    public abstract void  StartDeviceAsync();
+    public abstract void StartDeviceAsync();
 
     public abstract void StopDeviceAsync();
-
 }

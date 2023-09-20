@@ -1,21 +1,20 @@
-﻿using Microsoft.Azure.Devices.Client;
+﻿using DeviceSimulation.DTOs;
+using Microsoft.Azure.Devices.Client;
 using Microsoft.Azure.Devices.Shared;
 using Microsoft.Extensions.Options;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace DeviceSimulation.Devices;
 
-public class Camera : DTOs.Device
+public class IntersectionDevice : Device
 {
-    CancellationTokenSource cancelTokenSource;
-    CancellationToken token ;
+    CancellationTokenSource _cancelTokenSource;
+    CancellationToken _token ;
     private readonly ILogger _logger;
 
-    public Camera(IOptions<BaseSettingsDto> options, ILogger logger) : base(options)
+    public IntersectionDevice(IOptions<BaseSettingsDto> options, ILogger logger) : base(options)
     {
-        DeviceId = "device-1";
         DeviceClient.SetMethodHandlerAsync("SetTelemetryInterval", SetTelemetryInterval, null);
         DeviceClient.SetMethodHandlerAsync("StopDevice", StopDeviceCloud, null);
         DeviceClient.SetMethodHandlerAsync("StartDevice", StartDevice, null);
@@ -36,8 +35,8 @@ public class Camera : DTOs.Device
         {
             while (IsActive)
             {
-                if (token.IsCancellationRequested)
-                    token.ThrowIfCancellationRequested();
+                if (_token.IsCancellationRequested)
+                    _token.ThrowIfCancellationRequested();
 
                 double currentTemperature = minTemperature + rand.NextDouble() * 15;
                 double currentHumidity = minHumidity + rand.NextDouble() * 20;
@@ -63,7 +62,7 @@ public class Camera : DTOs.Device
                 await DeviceClient.SendEventAsync(message);
                 Console.WriteLine($"{DateTime.Now} > Sending message: {messageBody}");
 
-                await Task.Delay(s_telemetryInterval, token);
+                await Task.Delay(s_telemetryInterval, _token);
             }
 
         }
@@ -97,9 +96,9 @@ public class Camera : DTOs.Device
         var twinProperties = new TwinCollection();
         twinProperties["IsActive"] = this.IsActive;
         await DeviceClient.UpdateReportedPropertiesAsync(twinProperties);
-        cancelTokenSource?.Cancel();
-        cancelTokenSource = new CancellationTokenSource();
-        token = cancelTokenSource.Token;
+        _cancelTokenSource?.Cancel();
+        _cancelTokenSource = new CancellationTokenSource();
+        _token = _cancelTokenSource.Token;
 
         SendDeviceToCloudMessagesAsync();
     }
@@ -107,7 +106,7 @@ public class Camera : DTOs.Device
     public override void StopDeviceAsync()
     {
         this.IsActive = false;
-        cancelTokenSource?.Cancel();
+        _cancelTokenSource?.Cancel();
     }
 
     private Task<MethodResponse> StopDeviceCloud(MethodRequest methodRequest, object userContext)

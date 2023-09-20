@@ -1,3 +1,4 @@
+using DeviceSimulation.DTOs;
 using DeviceSimulation.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,11 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddOptions<DeviceSimulation.Devices.DeviceOneSettingsDto>()
-    .BindConfiguration(DeviceSimulation.Devices.DeviceOneSettingsDto.DeviceId);
+builder.Services.AddOptions<DeviceOneSettingsDto>()
+    .BindConfiguration(DeviceOneSettingsDto.SectionName);
 
-builder.Services.AddOptions<DeviceSimulation.Devices.DeviceTwoSettingsDto>()
-    .BindConfiguration(DeviceSimulation.Devices.DeviceTwoSettingsDto.DeviceId);
+builder.Services.AddOptions<DeviceTwoSettingsDto>()
+    .BindConfiguration(DeviceTwoSettingsDto.SectionName);
 
 builder.Services.AddSingleton<IDeviceSimulation, DeviceSimulation.Services.DeviceSimulation>();
 builder.Logging.AddConsole();
@@ -38,9 +39,6 @@ app.MapPut("/devices/{deviceId}/turn-off", async (string deviceId, IDeviceSimula
     await deviceSimulation.StopDeviceAsync(deviceId);
 });
 
-app.MapGet("/devices", async (IDeviceSimulation deviceSimulation) =>
-{
-    return await deviceSimulation.GetDevicesAsync();
-});
+app.MapGet("/devices", async (IDeviceSimulation deviceSimulation) => await deviceSimulation.GetDevicesAsync());
 
 app.Run();

@@ -1,4 +1,4 @@
-﻿using DeviceSimulation.DTOs;
+﻿using DeviceSimulation.Devices;
 
 namespace DeviceSimulation.Services;
 

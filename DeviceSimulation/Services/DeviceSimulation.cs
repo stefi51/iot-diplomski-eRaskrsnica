@@ -6,28 +6,31 @@ namespace DeviceSimulation.Services;
 
 public class DeviceSimulation : IDeviceSimulation
 {
-    private readonly List<Device> devices;
+    private readonly List<Device> _devices;
 
     private readonly ILogger _logger;
-    // todo refactor
-    public DeviceSimulation(ILogger<DeviceSimulation> logger, IOptions<DeviceOneSettingsDto> device1, IOptions<DeviceTwoSettingsDto> device2)
+
+    public DeviceSimulation(ILogger<DeviceSimulation> logger,
+        IOptions<DeviceOneSettingsDto> deviceSettings1,
+        IOptions<DeviceTwoSettingsDto> deviceSettings2)
     {
         _logger = logger;
 
-        devices = new List<Device>()
+        _devices = new List<Device>
         {
-            new Camera(device1, logger)
+            new IntersectionDevice(deviceSettings1, logger),
+            new IntersectionDevice(deviceSettings2, logger)
         };
     }
 
     public async Task<List<Device>> GetDevicesAsync()
     {
-        return devices;
+        return _devices;
     }
 
     public async Task StartDeviceAsync(string deviceId)
     {
-        var device = (from d in devices
+        var device = (from d in _devices
                      where d.DeviceId == deviceId
                      select d).SingleOrDefault();
 
@@ -44,7 +47,7 @@ public class DeviceSimulation : IDeviceSimulation
 
     public async Task StopDeviceAsync(string deviceId)
     {
-        var device = (from d in devices
+        var device = (from d in _devices
                       where d.DeviceId == deviceId
                       select d).SingleOrDefault();
 
@@ -53,8 +56,7 @@ public class DeviceSimulation : IDeviceSimulation
             throw new Exception($"Device not found.{deviceId}");
         }
 
-       // device.IsActive = false;
-       device.StopDeviceAsync();
+        device.StopDeviceAsync();
         _logger.LogInformation($"Device: {deviceId} stopped.");
     }
 }

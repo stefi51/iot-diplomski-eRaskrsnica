@@ -1,5 +1,6 @@
 using IoTHubManagement.Services;
 using IoTHubManagement.Settings;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +34,11 @@ app.MapPut("devices/{deviceId}/turn-on", async (string deviceId, IIoTHubManager 
 app.MapPut("devices/{deviceId}/turn-off", async (string deviceId, IIoTHubManager hubManager) =>
 {
     await hubManager.TurnOffAsync(deviceId);
+});
+
+app.MapPost("devices/{deviceId}/messages", async (string deviceId, [FromBody] string payload, IIoTHubManager hubManager) =>
+{
+    await hubManager.SendMessageToDevice(deviceId, payload);
 });
 
 app.Run();

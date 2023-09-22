@@ -13,13 +13,41 @@ public class IntersectionDevice : Device
     CancellationToken _token ;
     private readonly ILogger _logger;
 
-    public IntersectionDevice(IOptions<BaseSettingsDto> options, ILogger logger) : base(options)
+
+    // Traffic data
+    private int  VehiclePerHour { get; set; }
+    private Dictionary<int,double> AverageSpeedPerLane { get; set; }
+    private double Temperature { get; set; }
+    private double AirQuality { get; set; }
+    private int NumberOfLanes { get; set; }
+    private bool IsTrafficJamActive { get; set; }
+    private TimeSpan TelemetryInterval { get; set; }
+
+
+    public IntersectionDevice(IOptions<BaseSettingsDto> options,
+        ILogger logger) : base(options)
     {
-        DeviceClient.SetMethodHandlerAsync("SetTelemetryInterval", SetTelemetryInterval, null);
-        DeviceClient.SetMethodHandlerAsync("StopDevice", StopDeviceCloud, null);
-        DeviceClient.SetMethodHandlerAsync("StartDevice", StartDevice, null);
+       
+        //TODO
+        DeviceClient.SetMethodHandlerAsync("DecreaseTrafficFlow", SetTelemetryInterval, null);
+
+         // TODO
+        DeviceClient.SetMethodHandlerAsync("IncreaseTrafficFlow", SetTelemetryInterval, null);
+
+        // Invoke direct method on device.
+        DeviceClient.SetMethodHandlerAsync("StopDevice", StopDeviceFromCloud, null);
+
+        DeviceClient.SetMethodHandlerAsync("StartDevice", StartDeviceFromCloud, null);
+
+
+        DeviceClient.SetDesiredPropertyUpdateCallbackAsync(TwinUpdateCallback, null);
+
+        DeviceClient.SetReceiveMessageHandlerAsync(ReceiveC2DMessage, null);
+
         _logger = logger;
     }
+
+    //TODO simulirati data
 
     // Async method to send simulated telemetry.
     public async Task SendDeviceToCloudMessagesAsync()
@@ -77,25 +105,9 @@ public class IntersectionDevice : Device
 
     public async override void StartDeviceAsync()
     {
-        Twin twin = await DeviceClient.GetTwinAsync();
-       _logger.LogInformation("\tInitial twin value received:");
-        _logger.LogInformation($"\t{twin.ToJson()}");
-     
+        await SetUpMetaData();
 
-        var isActive = twin.Properties.Desired["IsActive"];
-
-        if( isActive is not null)
-        {
-            this.IsActive = isActive;
-        }
-        else
-        {
-            this.IsActive = false;
-        }
-
-        var twinProperties = new TwinCollection();
-        twinProperties["IsActive"] = this.IsActive;
-        await DeviceClient.UpdateReportedPropertiesAsync(twinProperties);
+        //stops previous iteration
         _cancelTokenSource?.Cancel();
         _cancelTokenSource = new CancellationTokenSource();
         _token = _cancelTokenSource.Token;
@@ -103,32 +115,49 @@ public class IntersectionDevice : Device
         SendDeviceToCloudMessagesAsync();
     }
 
-    public override void StopDeviceAsync()
+    public async override void StopDeviceAsync()
     {
         this.IsActive = false;
+        var twinProperties = new TwinCollection();
+        twinProperties["IsActive"] = this.IsActive;
+        await DeviceClient.UpdateReportedPropertiesAsync(twinProperties);
         _cancelTokenSource?.Cancel();
     }
 
-    private Task<MethodResponse> StopDeviceCloud(MethodRequest methodRequest, object userContext)
+    /// <summary>
+    /// Stops devices on cloud request.
+    /// </summary>
+    /// <param name="methodRequest"></param>
+    /// <param name="userContext"></param>
+    /// <returns></returns>
+    private Task<MethodResponse> StopDeviceFromCloud(MethodRequest methodRequest, object userContext)
     {
-        _logger.LogInformation("Stop from cloud");
+        _logger.LogInformation($"Stop device: {DeviceId} request from cloud.");
+
         StopDeviceAsync();
-        // Acknowlege the direct method call with a 200 success message.
+
         string result = $"{{\"result\":\"Executed direct method: {methodRequest.Name}\"}}";
+
         return Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(result), 200));
-     
     }
 
 
-    private Task<MethodResponse> StartDevice(MethodRequest methodRequest, object userContext)
+    /// <summary>
+    /// Starts device on cloud request.
+    /// </summary>
+    /// <param name="methodRequest"></param>
+    /// <param name="userContext"></param>
+    /// <returns></returns>
+    private Task<MethodResponse> StartDeviceFromCloud(MethodRequest methodRequest, object userContext)
     {
+        _logger.LogInformation($"Start device: {DeviceId} request from cloud.");
+
         StartDeviceAsync();
-        // Acknowlege the direct method call with a 200 success message.
-        _logger.LogInformation("Start from cloud");
         string result = $"{{\"result\":\"Executed direct method: {methodRequest.Name}\"}}";
         return Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(result), 200));
 
     }
+
 
     // Handle the direct method call.
     private static Task<MethodResponse> SetTelemetryInterval(MethodRequest methodRequest, object userContext)
@@ -154,6 +183,89 @@ public class IntersectionDevice : Device
             string result = "{\"result\":\"Invalid parameter\"}";
             return Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(result), 400));
         }
+    }
+
+    private async Task SetUpMetaData()
+    {
+       
+        Twin twin = await DeviceClient.GetTwinAsync();
+        _logger.LogInformation("\tInitial twin value received:");
+        _logger.LogInformation($"\t{twin.ToJson()}");
+
+
+        var isActive = twin.Properties.Desired["IsActive"];
+        var telemetryInterval = twin.Properties.Desired["telemetryInterval"];
+
+        if (telemetryInterval is not null)
+        {
+            TelemetryInterval= TimeSpan.FromSeconds((double)telemetryInterval);
+        }
+
+        if (isActive is not null)
+        {
+            this.IsActive = isActive;
+        }
+        else
+        {
+            this.IsActive = false;
+        }
+
+        var twinProperties = new TwinCollection();
+        twinProperties["IsActive"] = this.IsActive;
+        twinProperties["telemetryInterval"] = telemetryInterval;
+        await DeviceClient.UpdateReportedPropertiesAsync(twinProperties);
+    }
+
+    private async Task TwinUpdateCallback(TwinCollection tw, object userContext)
+    {
+      
+        _logger.LogInformation("\t Updated twin value received:");
+        _logger.LogInformation($"\t{tw.ToJson()}"); 
+
+
+        var isActive = tw["IsActive"];
+        var telemetryInterval = tw["telemetryInterval"];
+
+        if (telemetryInterval is not null)
+        {
+            TelemetryInterval = TimeSpan.FromSeconds((double)telemetryInterval);
+        }
+
+        if (isActive is not null)
+        {
+            this.IsActive = isActive;
+        }
+        else
+        {
+            this.IsActive = false;
+        }
+
+        var twinProperties = new TwinCollection();
+        twinProperties["IsActive"] = this.IsActive;
+        twinProperties["telemetryInterval"] = telemetryInterval;
+        await DeviceClient.UpdateReportedPropertiesAsync(twinProperties);
+      
+    }
+
+    private async Task ReceiveC2DMessage(Message message, object _)
+    {
+        try
+        {
+            string messageData = Encoding.ASCII.GetString(message.GetBytes());
+            var formattedMessage = new StringBuilder($"Received message: [{messageData}]\n");
+            _logger.LogInformation($"Message received: {formattedMessage}");
+
+            // remove message from queue
+            await DeviceClient.CompleteAsync(message);
+
+        }
+        finally
+        {
+            message.Dispose();
+        }
+
+
+        throw new NotImplementedException();
     }
 
 }

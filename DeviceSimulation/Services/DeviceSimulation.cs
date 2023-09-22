@@ -19,7 +19,7 @@ public class DeviceSimulation : IDeviceSimulation
         _devices = new List<Device>
         {
             new IntersectionDevice(deviceSettings1, logger),
-            new IntersectionDevice(deviceSettings2, logger)
+           // new IntersectionDevice(deviceSettings2, logger)
         };
     }
 

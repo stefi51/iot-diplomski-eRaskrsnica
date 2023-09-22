@@ -2,6 +2,7 @@
 using Microsoft.Azure.Devices;
 using Microsoft.Extensions.Options;
 using Microsoft.Rest;
+using System.Text;
 
 namespace IoTHubManagement.Services;
 
@@ -29,6 +30,25 @@ public class IoTHubManager : IIoTHubManager
 
         _logger.LogInformation($"Response status: {response.Status}, payload:\n\t{response.GetPayloadAsJson()}");
         _logger.LogInformation($"{deviceId} stopped.");
+    }
+
+    public  async Task SendMessageToDevice(string deviceId, string payload)
+    {
+        using var message = new Message(Encoding.ASCII.GetBytes(payload))
+        {
+            // An acknowledgment is sent on delivery success or failure.
+            Ack = DeliveryAcknowledgement.Full
+        };
+        try
+        {
+            await _serviceClient.SendAsync(deviceId, message);
+            _logger.LogInformation($"Sent payload to {deviceId}.");
+            message.Dispose();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError($"Unexpected error, will need to reinitialize the client: {e}");
+        }
     }
 
     public async Task TurnOnAsync(string deviceId)

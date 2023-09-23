@@ -1,4 +1,6 @@
-﻿namespace IoTHubManagement.Services;
+﻿using IoTHubManagement.DTOs;
+
+namespace IoTHubManagement.Services;
 
 public interface IIoTHubManager
 {
@@ -7,4 +9,7 @@ public interface IIoTHubManager
     public Task TurnOffAsync(string deviceId);
 
     public Task SendMessageToDevice(string deviceId, string payload);
+    public Task UpdateDeviceTelemetryInterval(string deviceId, int value);
+
+    public Task<List<DeviceStatusDto>> GetDevicesStatus();
 }

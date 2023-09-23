@@ -26,19 +26,25 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapPut("devices/{deviceId}/turn-on", async (string deviceId, IIoTHubManager hubManager) =>
-{
-    await hubManager.TurnOnAsync(deviceId);
-});
+app.MapPut("devices/{deviceId}/turn-on",
+    async (string deviceId, IIoTHubManager hubManager) => { await hubManager.TurnOnAsync(deviceId); });
 
-app.MapPut("devices/{deviceId}/turn-off", async (string deviceId, IIoTHubManager hubManager) =>
-{
-    await hubManager.TurnOffAsync(deviceId);
-});
+app.MapPut("devices/{deviceId}/turn-off",
+    async (string deviceId, IIoTHubManager hubManager) => { await hubManager.TurnOffAsync(deviceId); });
 
-app.MapPost("devices/{deviceId}/messages", async (string deviceId, [FromBody] string payload, IIoTHubManager hubManager) =>
-{
-    await hubManager.SendMessageToDevice(deviceId, payload);
-});
+app.MapPost("devices/{deviceId}/messages",
+    async (string deviceId, [FromBody] string payload, IIoTHubManager hubManager) =>
+    {
+        await hubManager.SendMessageToDevice(deviceId, payload);
+    });
+
+
+app.MapPut("devices/{deviceId}/telemetry-interval",
+    async (string deviceId, [FromBody] int payload, IIoTHubManager hubManager) =>
+    {
+        await hubManager.UpdateDeviceTelemetryInterval(deviceId, payload);
+    });
+
+app.MapGet("devices", async (IIoTHubManager hubManager) => await hubManager.GetDevicesStatus());
 
 app.Run();

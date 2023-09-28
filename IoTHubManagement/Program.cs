@@ -13,6 +13,9 @@ builder.Logging.AddConsole();
 builder.Services.AddOptions<IoTHubSettingsDto>()
     .BindConfiguration(IoTHubSettingsDto.SectionName);
 
+builder.Services.AddOptions<CosmosDbSettings>()
+    .BindConfiguration(CosmosDbSettings.SectionName);
+
 builder.Services.AddSingleton<IIoTHubManager, IoTHubManager>();
 
 var app = builder.Build();
@@ -46,5 +49,7 @@ app.MapPut("devices/{deviceId}/telemetry-interval",
     });
 
 app.MapGet("devices", async (IIoTHubManager hubManager) => await hubManager.GetDevicesStatus());
+
+app.MapGet("devices/{deviceId}/device-data", async (string deviceId,IIoTHubManager hubManager) => await hubManager.GetDeviceData(deviceId));
 
 app.Run();

@@ -12,4 +12,6 @@ public interface IIoTHubManager
     public Task UpdateDeviceTelemetryInterval(string deviceId, int value);
 
     public Task<List<DeviceStatusDto>> GetDevicesStatus();
+
+    public Task<List<DeviceDataDto>> GetDeviceData(string deviceId);
 }

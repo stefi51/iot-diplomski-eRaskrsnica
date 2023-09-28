@@ -1,8 +1,10 @@
 ﻿using System.Text;
 using IoTHubManagement.DTOs;
 using IoTHubManagement.Settings;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Devices;
 using Microsoft.Extensions.Options;
+using MongoDB.Driver;
 
 namespace IoTHubManagement.Services;
 
@@ -14,11 +16,14 @@ public class IoTHubManager : IIoTHubManager
 
     private readonly RegistryManager _registryManager;
 
-    public IoTHubManager(ILogger<IoTHubManager> logger, IOptions<IoTHubSettingsDto> settings)
+    private readonly CosmosClient _cosmosClient;
+
+    public IoTHubManager(ILogger<IoTHubManager> logger, IOptions<IoTHubSettingsDto> settings, IOptions<CosmosDbSettings> cosmosDbo)
     {
         _logger = logger;
         _serviceClient = ServiceClient.CreateFromConnectionString(settings.Value.ConnectionString);
         _registryManager = RegistryManager.CreateFromConnectionString(settings.Value.ConnectionString);
+        _cosmosClient = new CosmosClient(cosmosDbo.Value.ConnectionString);
     }
 
     public async Task TurnOffAsync(string deviceId)
@@ -96,5 +101,16 @@ public class IoTHubManager : IIoTHubManager
             }
         }
         return list;
+    }
+
+    public async Task<List<DeviceDataDto>> GetDeviceData(string deviceId)
+    {
+        var db = _cosmosClient.GetDatabase("device-data");
+
+        var container = db.GetContainer("DeviceData");
+
+        return container.GetItemLinqQueryable<DeviceDataDto>(true)
+            .Where(d => d.DeviceId== deviceId && d.Body.humidity > 69.0).ToList();
+        
     }
 }

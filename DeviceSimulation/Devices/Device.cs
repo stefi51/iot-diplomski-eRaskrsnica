@@ -14,7 +14,6 @@ public abstract class Device
     {
         DeviceId = options.Value.DeviceId;
         DeviceClient = DeviceClient.CreateFromConnectionString(options.Value.ConnectionString, options.Value.TransportType);
-        StartDeviceAsync();
     }
 
     public abstract void StartDeviceAsync();

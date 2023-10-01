@@ -10,28 +10,19 @@ namespace DeviceSimulation.Devices;
 public class IntersectionDevice : Device
 {
     CancellationTokenSource _cancelTokenSource;
-    CancellationToken _token ;
+    CancellationToken _token;
     private readonly ILogger _logger;
-
-
-    // Traffic data
-    private int  VehiclePerHour { get; set; }
-    private Dictionary<int,double> AverageSpeedPerLane { get; set; }
-    private double Temperature { get; set; }
-    private double AirQuality { get; set; }
-    private int NumberOfLanes { get; set; }
-    private bool IsTrafficJamActive { get; set; }
     private TimeSpan TelemetryInterval { get; set; }
 
+    private DeviceSensorDataDto _sensorData;
 
     public IntersectionDevice(IOptions<BaseSettingsDto> options,
         ILogger logger) : base(options)
     {
-       
         //TODO
         DeviceClient.SetMethodHandlerAsync("DecreaseTrafficFlow", SetTelemetryInterval, null);
 
-         // TODO
+        // TODO
         DeviceClient.SetMethodHandlerAsync("IncreaseTrafficFlow", SetTelemetryInterval, null);
 
         // Invoke direct method on device.
@@ -39,25 +30,20 @@ public class IntersectionDevice : Device
 
         DeviceClient.SetMethodHandlerAsync("StartDevice", StartDeviceFromCloud, null);
 
-
         DeviceClient.SetDesiredPropertyUpdateCallbackAsync(TwinUpdateCallback, null);
 
         DeviceClient.SetReceiveMessageHandlerAsync(ReceiveC2DMessage, null);
 
         _logger = logger;
+
+        StartDeviceAsync();
+
     }
 
-    //TODO simulirati data
-
     // Async method to send simulated telemetry.
-    public async Task SendDeviceToCloudMessagesAsync()
+    // Device to cloud messages
+    public async Task SimulateDeviceSensors()
     {
-        // Initial telemetry values.
-        double minTemperature = 20;
-        double minHumidity = 60;
-        var s_telemetryInterval = TimeSpan.FromSeconds(10); // Seconds
-
-        var rand = new Random();
 
         try
         {
@@ -66,16 +52,23 @@ public class IntersectionDevice : Device
                 if (_token.IsCancellationRequested)
                     _token.ThrowIfCancellationRequested();
 
-                double currentTemperature = minTemperature + rand.NextDouble() * 15;
-                double currentHumidity = minHumidity + rand.NextDouble() * 20;
+                //initial data
+                double minTemperature = 20;
+                var rand = new Random();
+                var currentTemp = minTemperature + rand.NextDouble() * 15;
+                var averageSpeed = (rand.NextDouble() * 100) / _sensorData.NumberOfLanes;
+                var vehiclePerHour = (rand.NextDouble() * 1000) * _sensorData.NumberOfLanes;
+
+                _sensorData.Temperature = currentTemp;
+                _sensorData.AirQualityIndex = (int)((_sensorData.NumberOfLanes * currentTemp) / (rand.NextDouble() * 2));
+                _sensorData.AverageSpeedPerLane = averageSpeed;
+                _sensorData.IsTrafficJamActive = averageSpeed < 25;
+                _sensorData.VehiclePerHour = (int)vehiclePerHour;
+                
 
                 // Create JSON message.
-                string messageBody = JsonSerializer.Serialize(
-                    new
-                    {
-                        temperature = currentTemperature,
-                        humidity = currentHumidity,
-                    });
+                string messageBody = JsonSerializer.Serialize(_sensorData);
+
                 using var message = new Message(Encoding.ASCII.GetBytes(messageBody))
                 {
                     ContentType = "application/json",
@@ -84,13 +77,14 @@ public class IntersectionDevice : Device
 
                 // Add a custom application property to the message.
                 // An IoT hub can filter on these properties without access to the message body.
-                message.Properties.Add("temperatureAlert", (currentTemperature > 30) ? "true" : "false");
+                message.Properties.Add("IsTrafficJam", _sensorData.IsTrafficJamActive ? "true" : "false");
 
                 // Send the telemetry message.
                 await DeviceClient.SendEventAsync(message);
-                Console.WriteLine($"{DateTime.Now} > Sending message: {messageBody}");
 
-                await Task.Delay(s_telemetryInterval, _token);
+                Console.WriteLine($"{DateTime.Now} >DeviceId:{DeviceId} Sending message: {messageBody}");
+
+                await Task.Delay(TelemetryInterval, _token);
             }
 
         }
@@ -98,7 +92,8 @@ public class IntersectionDevice : Device
         {
             Console.WriteLine("canceled1");
         }
-        catch (TaskCanceledException) {
+        catch (TaskCanceledException)
+        {
             Console.WriteLine("canceled");
         } // User canceled
     }
@@ -112,7 +107,7 @@ public class IntersectionDevice : Device
         _cancelTokenSource = new CancellationTokenSource();
         _token = _cancelTokenSource.Token;
 
-        SendDeviceToCloudMessagesAsync();
+        SimulateDeviceSensors();
     }
 
     public async override void StopDeviceAsync()
@@ -185,20 +180,26 @@ public class IntersectionDevice : Device
         }
     }
 
+
+
+    // Initial device setup.
     private async Task SetUpMetaData()
     {
-       
         Twin twin = await DeviceClient.GetTwinAsync();
-        _logger.LogInformation("\tInitial twin value received:");
-        _logger.LogInformation($"\t{twin.ToJson()}");
-
+        _logger.LogInformation($"\t DeviceId:{DeviceId}." +
+                               $"Initial twin value received::{twin.ToJson()}");
 
         var isActive = twin.Properties.Desired["IsActive"];
         var telemetryInterval = twin.Properties.Desired["telemetryInterval"];
+        var numberOfLanes = (int)twin.Properties.Desired["NumberOfLanes"];
 
         if (telemetryInterval is not null)
         {
-            TelemetryInterval= TimeSpan.FromSeconds((double)telemetryInterval);
+            TelemetryInterval = TimeSpan.FromSeconds((double)telemetryInterval);
+        }
+        else
+        {
+            TelemetryInterval = TimeSpan.FromSeconds((double)10);
         }
 
         if (isActive is not null)
@@ -210,17 +211,24 @@ public class IntersectionDevice : Device
             this.IsActive = false;
         }
 
+        //initial data
+        _sensorData = new DeviceSensorDataDto()
+        {
+            NumberOfLanes = numberOfLanes,
+        };
+
         var twinProperties = new TwinCollection();
         twinProperties["IsActive"] = this.IsActive;
         twinProperties["telemetryInterval"] = telemetryInterval;
+        twinProperties["NumberOfLanes"] = numberOfLanes;
         await DeviceClient.UpdateReportedPropertiesAsync(twinProperties);
     }
 
+    //Update device data twin from cloud.
     private async Task TwinUpdateCallback(TwinCollection tw, object userContext)
     {
-      
-        _logger.LogInformation("\t Updated twin value received:");
-        _logger.LogInformation($"\t{tw.ToJson()}"); 
+        _logger.LogInformation($"\t DeviceId:{DeviceId}." +
+                               $"Updated twin value received:{tw.ToJson()}");
 
 
         var isActive = tw["IsActive"];
@@ -230,6 +238,10 @@ public class IntersectionDevice : Device
         {
             TelemetryInterval = TimeSpan.FromSeconds((double)telemetryInterval);
         }
+        else
+        {
+            TelemetryInterval = TimeSpan.FromSeconds((double)10);
+        }
 
         if (isActive is not null)
         {
@@ -242,9 +254,9 @@ public class IntersectionDevice : Device
 
         var twinProperties = new TwinCollection();
         twinProperties["IsActive"] = this.IsActive;
-        twinProperties["telemetryInterval"] = telemetryInterval;
+        twinProperties["telemetryInterval"] = this.TelemetryInterval;
         await DeviceClient.UpdateReportedPropertiesAsync(twinProperties);
-      
+
     }
 
     private async Task ReceiveC2DMessage(Message message, object _)
@@ -252,8 +264,11 @@ public class IntersectionDevice : Device
         try
         {
             string messageData = Encoding.ASCII.GetString(message.GetBytes());
+
             var formattedMessage = new StringBuilder($"Received message: [{messageData}]\n");
-            _logger.LogInformation($"Message received: {formattedMessage}");
+
+            //print C2D message
+            _logger.LogInformation($"DeviceID: {DeviceId}. Timestamp:{DateTime.Now} {formattedMessage}");
 
             // remove message from queue
             await DeviceClient.CompleteAsync(message);
@@ -263,9 +278,6 @@ public class IntersectionDevice : Device
         {
             message.Dispose();
         }
-
-
-        throw new NotImplementedException();
     }
 
 }

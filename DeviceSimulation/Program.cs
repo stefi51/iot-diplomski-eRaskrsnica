@@ -41,4 +41,9 @@ app.MapPut("/devices/{deviceId}/turn-off", async (string deviceId, IDeviceSimula
 
 app.MapGet("/devices", async (IDeviceSimulation deviceSimulation) => await deviceSimulation.GetDevicesAsync());
 
+app.MapPut("/devices/{deviceId}/report-accident", async (string deviceId, IDeviceSimulation deviceSimulation) =>
+{
+    await deviceSimulation.ReportCarAccident(deviceId);
+});
+
 app.Run();

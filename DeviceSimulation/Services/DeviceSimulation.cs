@@ -28,6 +28,21 @@ public class DeviceSimulation : IDeviceSimulation
         return _devices;
     }
 
+    public Task ReportCarAccident(string deviceId)
+    {
+        var device = (from d in _devices
+            where d.DeviceId == deviceId
+            select d).SingleOrDefault();
+
+        if (device is null)
+        {
+            throw new Exception($"Device not found.{deviceId}");
+        }
+        _logger.LogInformation($"Device: {deviceId} ReportedCarAccident:{DateTime.UtcNow}");
+        device.ReportCarAccident();
+        return Task.CompletedTask;
+    }
+
     public async Task StartDeviceAsync(string deviceId)
     {
         var device = (from d in _devices

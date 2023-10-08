@@ -19,4 +19,6 @@ public abstract class Device
     public abstract void StartDeviceAsync();
 
     public abstract void StopDeviceAsync();
+
+    public abstract void ReportCarAccident();
 }

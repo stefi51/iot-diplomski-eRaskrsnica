@@ -1,6 +1,4 @@
-﻿using System.Security.Cryptography.X509Certificates;
-
-namespace IoTHubManagement.DTOs;
+﻿namespace IoTHubManagement.DTOs;
 
 public record DeviceDataDto
 (
@@ -9,6 +7,11 @@ public record DeviceDataDto
 );
 
 public record BodyDto(
-    double temperature,
-    double humidity
-    );
+    int VehiclePerHour,
+    double AverageSpeedPerLane,
+    double Temperature,
+    double AirQualityIndex,
+    int NumberOfLanes,
+    DateTime TimeStamp,
+    bool ReportedAccident = false
+);

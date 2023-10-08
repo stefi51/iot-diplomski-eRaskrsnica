@@ -1,7 +1,11 @@
 import React, { Component } from 'react';
 import CanvasJSReact from '@canvasjs/react-charts';
+import DataTable from 'react-data-table-component';
 var CanvasJSChart = CanvasJSReact.CanvasJSChart;
+
  
+var dataPoints =[];
+
 class MultipleAxisChart extends Component {	
 		constructor() {
 		super();
@@ -42,6 +46,14 @@ class MultipleAxisChart extends Component {
 			axisY2: {
 				title: "Profit in USD",
 				titleFontColor: "#51CDA0",
+				lineColor: "#51CDA0",
+				labelFontColor: "#51CDA0",
+				tickColor: "#51CDA0",
+				includeZero: false
+			},
+			axisY3: {
+				title: "Profit in EU",
+				titleFontColor: "#FFFF",
 				lineColor: "#51CDA0",
 				labelFontColor: "#51CDA0",
 				tickColor: "#51CDA0",
@@ -96,12 +108,65 @@ class MultipleAxisChart extends Component {
 					{ x: new Date(2017, 10, 1), y: 33548 },
 					{ x: new Date(2017, 11, 1), y: 32534 }
 				]
-			}]
+			},
+
+			{
+				type: "spline",
+				name: "Profit2",
+				axisYType: "secondary",
+				showInLegend: true,
+				xValueFormatString: "MMM YYYY",
+				yValueFormatString: "$#,##0.#",
+				dataPoints: [
+					{ x: new Date(2017, 0, 1), y: 5000.5 },
+					{ x: new Date(2017, 1, 1), y: 20015 },
+					{ x: new Date(2017, 2, 1), y: 27342 },
+					{ x: new Date(2017, 3, 1), y: 20088 },
+					{ x: new Date(2017, 4, 1), y: 500000 },
+					{ x: new Date(2017, 5, 1), y: 29034 },
+					{ x: new Date(2017, 6, 1), y: 30487 },
+					{ x: new Date(2017, 7, 1), y: 32523 },
+					{ x: new Date(2017, 8, 1), y: 20234 },
+					{ x: new Date(2017, 9, 1), y: 27234 },
+					{ x: new Date(2017, 10, 1), y: 33548 },
+					{ x: new Date(2017, 11, 1), y: 32534 }
+				]
+			},
+		]
 		}
 		
+		const columns = [
+			{
+				name: 'Title',
+				selector: row => row.title,
+			},
+			{
+				name: 'Year',
+				selector: row => row.year,
+			},
+		];
+		
+		const data = [
+			{
+				id: 1,
+				title: 'Beetlejuice',
+				year: '1988',
+			},
+			{
+				id: 2,
+				title: 'Ghostbusters',
+				year: '1984',
+			},
+		]
 		
 		return (
+			
 		  <div className="MultipleAxisChart">
+			<DataTable
+            columns={columns}
+            data={data}
+			pagination
+      			  />
 			<h1>Reatct Spline Chart with Multiple Axes</h1>
 			<CanvasJSChart options = {options} 
 				 onRef={ref => this.chart = ref}

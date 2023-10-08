@@ -58,7 +58,7 @@
 
 .firstPart{
   display: flex;
-  flex:2;
+  flex:1;
   flex-direction: row;
   width: 100%;
 }
@@ -71,7 +71,17 @@
 
 .firstItem{
   display: flex;
+  background-color: #f7f7f7;
   width: 100%;
+  font-family: 'Fira Sans', sans-serif;
+  flex-direction: column;
+  height: 100%;
+}
+
+.secondItem{
+  display: flex;
+  width: 100%;
+  font-family: 'Fira Sans', sans-serif;
   flex-direction: column;
   height: 100%;
 }

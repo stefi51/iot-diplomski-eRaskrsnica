@@ -7,5 +7,7 @@
         public bool IsActive { get; set; }
 
         public int TelemetryInterval { get; set; }
+
+        public int NumberOfLanes { get; set; }
     }
 }

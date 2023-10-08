@@ -3,152 +3,249 @@ import React from 'react';
 import BaseService from '../CommunicationLayer'
 import Switch from "react-switch";
 import CanvasJSReact from '@canvasjs/react-charts';
+import DataTable from 'react-data-table-component';
+import { Image, Container, Button } from 'react-bootstrap';
 var CanvasJSChart = CanvasJSReact.CanvasJSChart;
- 
+
 class DevicePanel extends React.Component {
 
-    constructor(props) {
-        super(props);
-        this.state = {
-
-            deviceId: this.props.location.state.deviceId,
-            isActive: this.props.location.state.isActive,
-            devicesData: []
-        }
-        this.handleChange = this.handleChange.bind(this);
-        this.toggleDataSeries = this.toggleDataSeries.bind(this);
+  constructor(props) {
+    super(props);
+    this.state = {
+      device: this.props.location.state.device,
+      isActive: this.props.location.state.device.isActive,
+      telemetryInterval: this.props.location.state.device.telemetryInterval,
+      telemetryIntervalInput: "",
+      numberOfLanesInput: this.props.location.state.device.numberOfLanes,
+      numberOfLanes: this.props.location.state.device.numberOfLanes,
+      devicesData: [],
+      messageInput: "",
+      carAccidentReported:true,
+      refinedData:[]
     }
+    this.handleChange = this.handleChange.bind(this);
+    this.handleChangeInput = this.handleChangeInput.bind(this);
+    this.handleSubmit = this.handleSubmit.bind(this);
+    this.handleChangeTextArea = this.handleChangeTextArea.bind(this);
 
-    handleChange(isActive) {
-        this.setState({ isActive });
-      }
+    this.handleSubmitMessage = this.handleSubmitMessage.bind(this);
 
-      toggleDataSeries(e){
-        if (typeof(e.dataSeries.visible) === "undefined" || e.dataSeries.visible) {
-          e.dataSeries.visible = false;
-        }
-        else{
-          e.dataSeries.visible = true;
-        }
-        this.chart.render();
-      }
-      
-      
+    this.handleChangeLaneInput = this.handleChangeLaneInput.bind(this);
+    this.handleSubmitLanes = this.handleSubmitLanes.bind(this);
 
-    render() {
-      const options = {
-        theme: "light2",
-        animationEnabled: true,
-        title:{
-          text: "Units Sold VS Profit"
-        },
-        subtitles: [{
-          text: "Click Legend to Hide or Unhide Data Series"
-        }],
-        axisX: {
-          title: "States"
-        },
-        axisY: {
-          title: "Units Sold",
-          titleFontColor: "#6D78AD",
-          lineColor: "#6D78AD",
-          labelFontColor: "#6D78AD",
-          tickColor: "#6D78AD",
-          includeZero: false
-        },
-        axisY2: {
-          title: "Profit in USD",
-          titleFontColor: "#51CDA0",
-          lineColor: "#51CDA0",
-          labelFontColor: "#51CDA0",
-          tickColor: "#51CDA0",
-          includeZero: false
-        },
-        toolTip: {
-          shared: true
-        },
-        legend: {
-          cursor: "pointer",
-          itemclick: this.toggleDataSeries
-        },
-        data: [{
-          type: "spline",
-          name: "Units Sold",
-          showInLegend: true,
-          xValueFormatString: "MMM YYYY",
-          yValueFormatString: "#,##0 Units",
-          dataPoints: [
-            { x: new Date(2017, 0, 1), y: 120 },
-            { x: new Date(2017, 1, 1), y: 135 },
-            { x: new Date(2017, 2, 1), y: 144 },
-            { x: new Date(2017, 3, 1), y: 103 },
-            { x: new Date(2017, 4, 1), y: 93 },
-            { x: new Date(2017, 5, 1), y: 129 },
-            { x: new Date(2017, 6, 1), y: 143 },
-            { x: new Date(2017, 7, 1), y: 156 },
-            { x: new Date(2017, 8, 1), y: 122 },
-            { x: new Date(2017, 9, 1), y: 106 },
-            { x: new Date(2017, 10, 1), y: 137 },
-            { x: new Date(2017, 11, 1), y: 142 }
-          ]
-        },
-        {
-          type: "spline",
-          name: "Profit",
-          axisYType: "secondary",
-          showInLegend: true,
-          xValueFormatString: "MMM YYYY",
-          yValueFormatString: "$#,##0.#",
-          dataPoints: [
-            { x: new Date(2017, 0, 1), y: 19034.5 },
-            { x: new Date(2017, 1, 1), y: 20015 },
-            { x: new Date(2017, 2, 1), y: 27342 },
-            { x: new Date(2017, 3, 1), y: 20088 },
-            { x: new Date(2017, 4, 1), y: 20234 },
-            { x: new Date(2017, 5, 1), y: 29034 },
-            { x: new Date(2017, 6, 1), y: 30487 },
-            { x: new Date(2017, 7, 1), y: 32523 },
-            { x: new Date(2017, 8, 1), y: 20234 },
-            { x: new Date(2017, 9, 1), y: 27234 },
-            { x: new Date(2017, 10, 1), y: 33548 },
-            { x: new Date(2017, 11, 1), y: 32534 }
-          ]
-        }]
-      }
-        return (
-            <div class="celaStrana">
-                <div class="firstPart">
-                    <div class="firstItem">
-                        <div>                            Device commands
+  }
 
-                        </div>
-                        <div>
-                            Update telemetry interval.
-                        </div>
-                        <div>
-                        <Switch onChange={this.handleChange} checked={this.state.isActive} />
-                            Turn on/ turn off.
-                        </div>
-                        <div>
-                            Send message to device.
-                        </div>
-                    </div>
-                    <div class="firstItem">2 za live data dijagram</div>
-                </div>
-            
-                <div>
-		</div>
-    <div className="MultipleAxisChart">
-			<h1>Reatct Spline Chart with Multiple Axes</h1>
-			<CanvasJSChart options = {options} 
-				 onRef={ref => this.chart = ref}
-			/>
-			{/*You can get reference to the chart instance as shown above using onRef. This allows you to access all chart properties and methods*/}
-		</div>
-                </div>
-
-        );
+  async handleChange(isActive) {
+    if (isActive) {
+      await BaseService.turnOnDevice(this.state.device.deviceId);
+    } else {
+      await BaseService.turnOffDevice(this.state.device.deviceId);
     }
+    this.setState({ isActive });
+  }
+
+  handleChangeInput(event) {
+    this.setState({ telemetryIntervalInput: event.target.value });
+  }
+
+  handleChangeTextArea(event) {
+    this.setState({ messageInput: event.target.value });
+  }
+
+  async handleSubmit(event) {
+    event.preventDefault();
+    this.setState({ telemetryInterval: this.state.telemetryIntervalInput });
+    await BaseService.updateTelemetryInterval(this.state.device.deviceId, this.state.telemetryIntervalInput)
+  }
+
+  async handleSubmitMessage(event) {
+    event.preventDefault();
+    await BaseService.sendMessageToDevice(this.state.device.deviceId, this.state.messageInput)
+    this.setState({ messageInput: "" });
+  }
+
+  handleChangeLaneInput(event) {
+    this.setState({ numberOfLanesInput: event.target.value });
+  }
+
+  async handleSubmitLanes(event) {
+    event.preventDefault();
+    this.setState({ numberOfLanes: this.state.numberOfLanesInput });
+    await BaseService.updateNumOfLanes(this.state.device.deviceId, this.state.numberOfLanesInput)
+  }
+
+  componentDidMount = async () => {
+    var data = await BaseService.getDeviceData(this.state.device.deviceId);
+    this.setState({ carAccidentReported: data[0].body.reportedAccident })
+    this.setState({ devicesData: data })
+
+    var refinedData= await BaseService.getRefinedData(this.state.device.deviceId);
+    this.setState({refinedData: refinedData})
+
+  }
+
+   onResolveClick = async () => {
+    await BaseService.resolveAccident(this.state.device.deviceId);
+    this.setState({carAccidentReported: false})
+  };
+
+
+  render() {
+    const columns = [
+      {
+        name: 'Vehicle per hour',
+        selector: row => row.body.vehiclePerHour,
+      },
+      {
+        name: 'Average speed',
+        selector: row => row.body.averageSpeedPerLane,
+      },
+      {
+        name: 'Temperature',
+        selector: row => row.body.temperature,
+      },
+      {
+        name: 'Air quality index',
+        selector: row => row.body.airQualityIndex,
+      },
+      {
+        name: 'Active lanes',
+        selector: row => row.body.numberOfLanes,
+      },
+      {
+        name: 'Date',
+        selector: row => row.body.timeStamp,
+      }
+
+    ];
+
+    const columnsRefined = [
+      {
+        name: 'State',
+        selector: row => row.intersectionState,
+      },
+      {
+        name: 'Average speed',
+        selector: row => row.rawData.averageSpeedPerLane,
+      },
+      {
+        name: 'Air quality',
+        selector: row => row.airQuality,
+      },
+      {
+        name: 'Air quality index',
+        selector: row => row.rawData.airQualityIndex,
+      },
+      {
+        name: 'Was accident',
+        selector: row => row.rawData.reportedAccident.toString(),
+      }
+
+    ];
+    const ExpandedComponent = ({ data }) => <pre>{JSON.stringify(data, null, 2)}
+
+      {data.Date}
+    </pre>;
+
+    return (
+      <div class="celaStrana" >
+        <div style={{ display: 'flex', flexDirection: 'row', width: '100%', height: '100%', flex: 1 }} >
+          <div style={{ display: 'flex', flexDirection: "column", width: '100%', height: '100%', flex: 1 }}>
+            <div>
+              <h4>Device info:</h4>
+            </div>
+            <div style={{ width: '100%' }}>
+              <div class="card-header">
+                <h3 class="card-title">Device ID: {this.state.device.deviceId}</h3>
+              </div>
+              <div class="card-body">
+                Telemetry interval: {this.state.telemetryInterval} s
+              </div>
+              <div class="card-body">
+                Number of lanes: {this.state.numberOfLanes}
+              </div>
+              <div class="card-body">
+                Reported car accident: {this.state.carAccidentReported.toString()}
+                <div style={{ display: 'flex', width: '100%', justifyContent: 'center', flexDirection: 'column', paddingRight: '15px' }}>
+                  <Button style={{ paddingRight: '15px' }} disabled={this.state.carAccidentReported? false: true} 
+                  onClick={()=> this.onResolveClick()} > Resolve accident. </Button>
+                </div>
+              </div>
+            </div>
+            <div>
+              Turn on/ turn off. <Switch onChange={this.handleChange} checked={this.state.isActive} />
+
+            </div>
+
+            <div>
+              Update telemetry interval:
+              <form onSubmit={this.handleSubmit}>
+                <label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={this.state.telemetryIntervalInput}
+                    onChange={this.handleChangeInput}
+                  />
+                </label>
+                <input type="submit" value='Submit' />
+              </form>
+            </div>
+            <div>
+              Send message to device.
+              <form onSubmit={this.handleSubmitMessage}>
+                <label>
+                  <textarea
+                    value={this.state.messageInput}
+                    onChange={this.handleChangeTextArea}
+                  />
+                </label>
+                <input type="submit" value='Submit' />
+              </form>
+            </div>
+            <div>
+              Change number of lanes:
+              <form onSubmit={this.handleSubmitLanes}>
+                <label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={this.state.numberOfLanesInput}
+                    onChange={this.handleChangeLaneInput}
+                  />
+                </label>
+                <input type="submit" value='Change' />
+              </form>
+
+            </div>
+          </div>
+
+          <div style={{ flex: 1 }}> Refined data:
+
+          <DataTable
+            columns={columnsRefined}
+            data={this.state.refinedData}
+            expandableRows
+            expandableRowsComponent={ExpandedComponent}
+            pagination
+          />
+          
+          </div>
+        </div>
+        <div style={{ width: '100%', height: '100%', flex: 1, paddingRight: '15px', paddingLeft: '15px' }}>
+          Raw data:
+          <DataTable
+            columns={columns}
+            data={this.state.devicesData}
+            expandableRows
+            expandableRowsComponent={ExpandedComponent}
+            pagination
+          />
+        </div>
+      </div>
+
+    );
+  }
 }
 
 export default DevicePanel

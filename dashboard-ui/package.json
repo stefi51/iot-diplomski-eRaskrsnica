@@ -13,6 +13,7 @@
     "react": "^18.2.0",
     "react-bootstrap": "^2.9.0",
     "react-charts": "^3.0.0-beta.55",
+    "react-data-table-component": "^7.5.4",
     "react-dom": "^18.2.0",
     "react-router": "^6.16.0",
     "react-router-dom": "^5.3.4",

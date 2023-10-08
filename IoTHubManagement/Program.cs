@@ -1,6 +1,9 @@
+using System.Text.Json.Serialization;
+using IoTHubManagement.DTOs;
 using IoTHubManagement.Services;
 using IoTHubManagement.Settings;
 using Microsoft.AspNetCore.Mvc;
+using MvcJsonOptions = Microsoft.AspNetCore.Mvc.JsonOptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +11,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.Configure<MvcJsonOptions>(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+
 /*builder.Services.AddCors(
     options =>
     {
@@ -53,14 +60,13 @@ app.MapPut("devices/{deviceId}/turn-off",
     async (string deviceId, IIoTHubManager hubManager) => { await hubManager.TurnOffAsync(deviceId); });
 
 app.MapPost("devices/{deviceId}/messages",
-    async (string deviceId, [FromBody] string payload, IIoTHubManager hubManager) =>
+    async (string deviceId, [FromBody] MessagePayloadDto payload, IIoTHubManager hubManager) =>
     {
         await hubManager.SendMessageToDevice(deviceId, payload);
     });
 
-
-app.MapPut("devices/{deviceId}/telemetry-interval",
-    async (string deviceId, [FromBody] int payload, IIoTHubManager hubManager) =>
+app.MapPut("devices/{deviceId}/telemetry-interval/{payload}",
+    async (string deviceId,  int payload, IIoTHubManager hubManager) =>
     {
         await hubManager.UpdateDeviceTelemetryInterval(deviceId, payload);
     });
@@ -68,5 +74,20 @@ app.MapPut("devices/{deviceId}/telemetry-interval",
 app.MapGet("devices", async (IIoTHubManager hubManager) => await hubManager.GetDevicesStatus());
 
 app.MapGet("devices/{deviceId}/device-data", async (string deviceId,IIoTHubManager hubManager) => await hubManager.GetDeviceData(deviceId));
+
+app.MapGet("devices/device-data", async ( IIoTHubManager hubManager) => await hubManager.GetAllData());
+
+app.MapPut("devices/{deviceId}/number-lanes/{payload}",
+    async (string deviceId, int payload, IIoTHubManager hubManager) =>
+    {
+        await hubManager.ChangeLaneConfiguration(deviceId, payload);
+    });
+
+app.MapGet("devices/{deviceId}/refined-data", async (string deviceId, IIoTHubManager hubManager) => await hubManager.GetRefinedData(deviceId));
+
+app.MapPut("devices/{deviceId}/resolve-accident",
+    async (string deviceId, IIoTHubManager hubManager) => { await hubManager.ResolveAccident(deviceId); });
+
+app.MapGet("devices/{deviceId}/air-quality", async (string deviceId, IIoTHubManager hubManager) => await hubManager.GetAirQuality(deviceId));
 
 app.Run();

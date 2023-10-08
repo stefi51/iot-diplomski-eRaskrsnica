@@ -8,4 +8,7 @@ public interface IDeviceSimulation
     public Task StopDeviceAsync(string deviceId);
 
     public Task<List<Device>> GetDevicesAsync();
+
+    public Task ReportCarAccident(string deviceId);
+
 }

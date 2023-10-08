@@ -19,13 +19,10 @@ public class IntersectionDevice : Device
     public IntersectionDevice(IOptions<BaseSettingsDto> options,
         ILogger logger) : base(options)
     {
-        //TODO
-        DeviceClient.SetMethodHandlerAsync("DecreaseTrafficFlow", SetTelemetryInterval, null);
-
-        // TODO
-        DeviceClient.SetMethodHandlerAsync("IncreaseTrafficFlow", SetTelemetryInterval, null);
 
         // Invoke direct method on device.
+        DeviceClient.SetMethodHandlerAsync("ResolveAccident", ResolveCarAccident, null);
+        
         DeviceClient.SetMethodHandlerAsync("StopDevice", StopDeviceFromCloud, null);
 
         DeviceClient.SetMethodHandlerAsync("StartDevice", StartDeviceFromCloud, null);
@@ -60,11 +57,11 @@ public class IntersectionDevice : Device
                 var vehiclePerHour = (rand.NextDouble() * 1000) * _sensorData.NumberOfLanes;
 
                 _sensorData.Temperature = currentTemp;
+                _sensorData.Humidity = 60 + rand.NextDouble() * 20;
                 _sensorData.AirQualityIndex = (int)((_sensorData.NumberOfLanes * currentTemp) / (rand.NextDouble() * 2));
                 _sensorData.AverageSpeedPerLane = averageSpeed;
-                _sensorData.IsTrafficJamActive = averageSpeed < 25;
                 _sensorData.VehiclePerHour = (int)vehiclePerHour;
-                
+                _sensorData.TimeStamp = DateTime.Now;
 
                 // Create JSON message.
                 string messageBody = JsonSerializer.Serialize(_sensorData);
@@ -77,7 +74,7 @@ public class IntersectionDevice : Device
 
                 // Add a custom application property to the message.
                 // An IoT hub can filter on these properties without access to the message body.
-                message.Properties.Add("IsTrafficJam", _sensorData.IsTrafficJamActive ? "true" : "false");
+               // message.Properties.Add("IsTrafficJam", _sensorData.IsTrafficJamActive ? "true" : "false");
 
                 // Send the telemetry message.
                 await DeviceClient.SendEventAsync(message);
@@ -95,7 +92,7 @@ public class IntersectionDevice : Device
         catch (TaskCanceledException)
         {
             Console.WriteLine("canceled");
-        } // User canceled
+        } 
     }
 
     public async override void StartDeviceAsync()
@@ -153,13 +150,29 @@ public class IntersectionDevice : Device
 
     }
 
+    private Task<MethodResponse> ResolveCarAccident(MethodRequest methodRequest, object userContext)
+    {
+        string data = Encoding.UTF8.GetString(methodRequest.Data);
 
-    // Handle the direct method call.
+        if (bool.TryParse(data, out bool carAccident))
+        {
+            _sensorData.ReportedAccident = carAccident;
+            string result = $"{{\"result\":\"Executed direct method: {methodRequest.Name}\"}}";
+            return Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(result), 200));
+        }
+        else
+        {
+            // Acknowlege the direct method call with a 400 error message.
+            string result = "{\"result\":\"Invalid parameter\"}";
+            return Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(result), 400));
+        }
+    }
+
+
     private static Task<MethodResponse> SetTelemetryInterval(MethodRequest methodRequest, object userContext)
     {
         string data = Encoding.UTF8.GetString(methodRequest.Data);
 
-        // Check the payload is a single integer value.
         if (int.TryParse(data, out int telemetryIntervalInSeconds))
         {
             var s_telemetryInterval = TimeSpan.FromSeconds(telemetryIntervalInSeconds);
@@ -233,6 +246,7 @@ public class IntersectionDevice : Device
 
         var isActive = tw["IsActive"];
         var telemetryInterval = tw["telemetryInterval"];
+        var numOfLanes = tw["NumberOfLanes"];
 
         if (telemetryInterval is not null)
         {
@@ -252,9 +266,19 @@ public class IntersectionDevice : Device
             this.IsActive = false;
         }
 
+        if (numOfLanes is not null)
+        {
+            this._sensorData.NumberOfLanes = (int)numOfLanes;
+        }
+        else
+        {
+            this._sensorData.NumberOfLanes = 1;
+        }
+
         var twinProperties = new TwinCollection();
         twinProperties["IsActive"] = this.IsActive;
-        twinProperties["telemetryInterval"] = this.TelemetryInterval;
+        twinProperties["telemetryInterval"] = telemetryInterval;
+        twinProperties["NumberOfLanes"] = this._sensorData.NumberOfLanes;
         await DeviceClient.UpdateReportedPropertiesAsync(twinProperties);
 
     }
@@ -280,4 +304,8 @@ public class IntersectionDevice : Device
         }
     }
 
+    public override void ReportCarAccident()
+    {
+        _sensorData.ReportedAccident = true;
+    }
 }

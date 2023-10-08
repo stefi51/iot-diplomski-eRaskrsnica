@@ -4,7 +4,6 @@ using IoTHubManagement.Settings;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Devices;
 using Microsoft.Extensions.Options;
-using MongoDB.Driver;
 
 namespace IoTHubManagement.Services;
 
@@ -40,9 +39,9 @@ public class IoTHubManager : IIoTHubManager
         _logger.LogInformation($"{deviceId} stopped.");
     }
 
-    public async Task SendMessageToDevice(string deviceId, string payload)
+    public async Task SendMessageToDevice(string deviceId, MessagePayloadDto reqDto)
     {
-        using var message = new Message(Encoding.ASCII.GetBytes(payload))
+        using var message = new Message(Encoding.ASCII.GetBytes(reqDto.Payload))
         {
             // An acknowledgment is sent on delivery success or failure.
             Ack = DeliveryAcknowledgement.Full
@@ -95,7 +94,9 @@ public class IoTHubManager : IIoTHubManager
                 {
                     DeviceId = twin.DeviceId,
                     IsActive = twin.Properties.Reported["IsActive"],
-                    TelemetryInterval = twin.Properties.Reported["telemetryInterval"]
+                    TelemetryInterval = twin.Properties.Reported["telemetryInterval"],
+                    NumberOfLanes = twin.Properties.Reported["NumberOfLanes"]
+
                 });
 
             }
@@ -110,7 +111,73 @@ public class IoTHubManager : IIoTHubManager
         var container = db.GetContainer("DeviceData");
 
         return container.GetItemLinqQueryable<DeviceDataDto>(true)
-            .Where(d => d.DeviceId== deviceId && d.Body.humidity > 69.0).ToList();
+            .Where(d => d.DeviceId== deviceId)
+            .OrderByDescending(x=> x.Body.TimeStamp)
+            .ToList();
         
+    }
+
+    public async Task<List<DeviceDataDto>> GetAllData()
+    {
+        var db = _cosmosClient.GetDatabase("device-data");
+
+        var container = db.GetContainer("DeviceData");
+
+        return container.GetItemLinqQueryable<DeviceDataDto>(true)
+            .OrderByDescending(x=> x.Body.TimeStamp).ToList();
+    }
+
+    public async Task ChangeLaneConfiguration(string deviceId, int value)
+    {
+        var deviceTwin = await _registryManager.GetTwinAsync(deviceId);
+
+        deviceTwin.Properties.Desired["NumberOfLanes"] = value;
+
+        await _registryManager.UpdateTwinAsync(deviceId, deviceTwin, deviceTwin.ETag);
+    }
+
+    public async Task<List<RefinedDataDTO>> GetRefinedData(string deviceId)
+    {
+        var db = _cosmosClient.GetDatabase("device-data");
+
+        var container = db.GetContainer("refined-data");
+
+        return container.GetItemLinqQueryable<RefinedDataDTO>(true)
+            .Where(d => d.DeviceId == deviceId)
+            .OrderByDescending(x => x.RefinedDate)
+            .ToList();
+      
+    }
+
+    public async Task ResolveAccident(string deviceId)
+    {
+        var methodInvocation = new CloudToDeviceMethod("ResolveAccident")
+        {
+            ResponseTimeout = TimeSpan.FromSeconds(30)
+        };
+        methodInvocation.SetPayloadJson("false");
+
+        var response = await _serviceClient.InvokeDeviceMethodAsync(deviceId, methodInvocation);
+
+        _logger.LogInformation($"Response status: {response.Status}, payload:\n\t{response.GetPayloadAsJson()}");
+        _logger.LogInformation($"{deviceId} Accident resolved.");
+    }
+
+    public async Task<AirQualityDto > GetAirQuality(string deviceId)
+    {
+
+        var db = _cosmosClient.GetDatabase("device-data");
+
+        var container = db.GetContainer("refined-data");
+
+       var data=container.GetItemLinqQueryable<RefinedDataDTO>(true)
+            .Where(d => d.DeviceId == deviceId)
+            .OrderByDescending(x => x.RefinedDate)
+            .ToList();
+
+       var last = data.FirstOrDefault();
+
+       return new AirQualityDto(deviceId, last?.AirQuality);
+
     }
 }

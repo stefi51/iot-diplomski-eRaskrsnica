@@ -79,19 +79,31 @@ class DevicePanel extends React.Component {
 
   componentDidMount = async () => {
 
+    await this.pullData();
+
+    this.intervalId =  setInterval(() => {
+       this.pullData();
+    }, 15000); 
+
+  }
+
+  pullData= async()=>{
     var devices = await BaseService.getConnectedDevices();
     var device = devices.filter((x)=> x.deviceId== this.state.device.deviceId);
-    this.setState({isActive: device.isActive})
-
+    this.setState({isActive: device[0].isActive})
+    this.setState({telemetryInterval: device[0].telemetryInterval})
+    
+    console.log(device);
     var data = await BaseService.getDeviceData(this.state.device.deviceId);
     this.setState({ carAccidentReported: data[0].body.reportedAccident })
     this.setState({ devicesData: data })
 
     var refinedData= await BaseService.getRefinedData(this.state.device.deviceId);
     this.setState({refinedData: refinedData})
+  }
 
-    this.interval = setInterval(this.tick, this.state.delay);
-
+  componentWillUnmount() {
+    clearInterval(this.intervalId);
   }
 
 

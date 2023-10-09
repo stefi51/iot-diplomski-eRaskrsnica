@@ -53,7 +53,7 @@ public class IntersectionDevice : Device
                 double minTemperature = 20;
                 var rand = new Random();
                 var currentTemp = minTemperature + rand.NextDouble() * 15;
-                var averageSpeed = (rand.NextDouble() * 50) / _sensorData.NumberOfLanes;
+                var averageSpeed = (rand.NextDouble() * 100) / _sensorData.NumberOfLanes;
                 var vehiclePerHour = (rand.NextDouble() * 500) * _sensorData.NumberOfLanes;
                 
                 _sensorData.Temperature = currentTemp;

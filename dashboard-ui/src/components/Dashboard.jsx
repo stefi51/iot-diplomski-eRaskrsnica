@@ -40,36 +40,37 @@ class Dashboard extends React.Component {
                 },
                 data: []
             },
-            optionsAir:{
+            optionsAir: {
                 animationEnabled: true,
                 exportEnabled: true,
-                title:{
-                    text: "Air quality"             
-                }, 
+                title: {
+                    text: "Air quality"
+                },
                 subtitles: [{
                     text: "Lower is better."
-                  }],
-                axisY:{
+                }],
+                axisY: {
                     title: "Air index quality (AQI)"
                 },
                 toolTip: {
                     shared: true
                 },
-                legend:{
-                    cursor:"pointer",
+                legend: {
+                    cursor: "pointer",
                     itemclick: this.toggleDataSeries2
                 },
-                data:[]    		
-    		}
-                       
+                data: []
+            }
+
         }
 
     }
 
     goToDevice = async (device) => {
+       // clearInterval(this.intervalId);
         this.props.history.push({
             pathname: `/devicePanel`,
-            state: {device }
+            state: { device }
         });
     }
 
@@ -100,6 +101,14 @@ class Dashboard extends React.Component {
         return elements;
     }
     componentDidMount = async () => {
+        await this.loadData2();
+    }
+
+    componentWillUnmount() {
+        clearInterval(this.intervalId);
+    }
+
+    loadData2 = async () => {
         var data = await BaseService.getConnectedDevices();
 
         var deviceAllData = await BaseService.getAllData();
@@ -113,8 +122,6 @@ class Dashboard extends React.Component {
             return groups;
         }, {});
 
-        console.log(groupedData);
-
         let graphElements = [];
         Object.entries(groupedData).map(([group, data]) =>
             graphElements.push({
@@ -124,33 +131,32 @@ class Dashboard extends React.Component {
                 xValueType: "dateTime",
                 dataPoints: data.reduce((res, d) => {
 
-                    res.push({ x: new Date(d.timeStamp), y:d.averageSpeedPerLane})
+                    res.push({ x: new Date(d.timeStamp), y: d.averageSpeedPerLane })
                     return res;
                 }, [])
             }
             )
         )
-        console.log(graphElements);
         var someProperty = this.state.options;
         someProperty.data = graphElements;
         this.setState({ options: someProperty });
         this.chart.render();
         this.setState({ devices: data });
 
-        var airData= await BaseService.getAirQualityData("intersection-1");
-        var intersection1graph= [];
+        var airData = await BaseService.getAirQualityData("intersection-1");
+        var intersection1graph = [];
 
-        airData.map((el)=>{
-            intersection1graph.push({x:new Date(el.rawDate), y:el.airQualityIndex})
+        airData.map((el) => {
+            intersection1graph.push({ x: new Date(el.rawDate), y: el.airQualityIndex })
         });
-        
-        var airint2Data= await BaseService.getAirQualityData("intersection-2");
-        var intersection2graph= [];
 
-        airint2Data.map((el)=>{
-            intersection2graph.push({x:new Date(el.rawDate), y:el.airQualityIndex})
+        var airint2Data = await BaseService.getAirQualityData("intersection-2");
+        var intersection2graph = [];
+
+        airint2Data.map((el) => {
+            intersection2graph.push({ x: new Date(el.rawDate), y: el.airQualityIndex })
         });
-        
+
 
         let graphElements2 = [];
 
@@ -170,7 +176,7 @@ class Dashboard extends React.Component {
         });
         var airProperty = this.state.optionsAir;
         airProperty.data = graphElements2;
-        this.setState({optionsAir:airProperty }); 
+        this.setState({ optionsAir: airProperty });
         this.chart2.render();
     }
 
@@ -207,15 +213,15 @@ class Dashboard extends React.Component {
                             </ListGroup>
                         </div>
                     </div>
-                    <div class="secondItem" style={{ padding:'15px' }}>
-                    <CanvasJSChart options={this.state.optionsAir}
-                        onRef={ref => this.chart2 = ref}
-                    />
+                    <div class="secondItem" style={{ padding: '15px' }}>
+                        <CanvasJSChart options={this.state.optionsAir}
+                                                    onRef={ref => this.chart2 = ref}
+                        />
                     </div>
                 </div>
                 <div class="secondPart" style={{ paddingRight: '15px' }}>
                     <CanvasJSChart options={this.state.options}
-                        onRef={ref => this.chart = ref}
+                         onRef={ref => this.chart = ref}
                     />
                 </div>
             </div>

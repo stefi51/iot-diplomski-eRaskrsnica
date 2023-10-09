@@ -64,6 +64,11 @@ class BaseService {
         let data = await res.data;
         return data;
     }
+    getAirQualityData = async (deviceId) => {
+        let res = await axios.get(this.IoTHubBaseUrl + 'devices/' + deviceId + '/air-quality');
+        let data = await res.data;
+        return data;
+    }
 
 }
 

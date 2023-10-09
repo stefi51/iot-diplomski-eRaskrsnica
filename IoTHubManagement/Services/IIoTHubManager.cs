@@ -21,5 +21,5 @@ public interface IIoTHubManager
 
     public Task<List<RefinedDataDTO>> GetRefinedData(string deviceId);
     public Task ResolveAccident(string deviceId);
-    public Task<AirQualityDto> GetAirQuality(string deviceId);
+    public Task<List<AirQualityDto>> GetAirQuality(string deviceId);
 }

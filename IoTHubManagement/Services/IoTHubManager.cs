@@ -163,21 +163,26 @@ public class IoTHubManager : IIoTHubManager
         _logger.LogInformation($"{deviceId} Accident resolved.");
     }
 
-    public async Task<AirQualityDto > GetAirQuality(string deviceId)
+    public async Task<List<AirQualityDto>> GetAirQuality(string deviceId)
     {
 
         var db = _cosmosClient.GetDatabase("device-data");
 
         var container = db.GetContainer("refined-data");
 
-       var data=container.GetItemLinqQueryable<RefinedDataDTO>(true)
+        var data = container.GetItemLinqQueryable<RefinedDataDTO>(true)
             .Where(d => d.DeviceId == deviceId)
-            .OrderByDescending(x => x.RefinedDate)
+             .OrderByDescending(x => x.RefinedDate)
+            .Take(20)
             .ToList();
 
-       var last = data.FirstOrDefault();
+       var airList= new List<AirQualityDto>();
 
-       return new AirQualityDto(deviceId, last?.AirQuality);
+       foreach (var dto in data)
+       {
+            airList.Add(new AirQualityDto(dto.DeviceId, dto.AirQuality, dto.rawData.Temperature, dto.rawData.AirQualityIndex, dto.RefinedDate, dto.rawData.TimeStamp));
+       }
 
+       return airList;
     }
 }

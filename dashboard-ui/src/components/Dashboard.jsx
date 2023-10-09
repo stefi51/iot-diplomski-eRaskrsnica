@@ -24,7 +24,7 @@ class Dashboard extends React.Component {
                 },
                 axisX: {
                     title: "Timeline",
-                    intervalType: "hour",
+                    intervalType: "minutes",
                     valueFormatString: "YYYY-MM-DD HH:mm:ss",
                     labelMaxWidth: 1000,
                 },
@@ -39,7 +39,29 @@ class Dashboard extends React.Component {
                     itemclick: this.toggleDataSeries
                 },
                 data: []
-            }
+            },
+            optionsAir:{
+                animationEnabled: true,
+                exportEnabled: true,
+                title:{
+                    text: "Air quality"             
+                }, 
+                subtitles: [{
+                    text: "Lower is better."
+                  }],
+                axisY:{
+                    title: "Air index quality (AQI)"
+                },
+                toolTip: {
+                    shared: true
+                },
+                legend:{
+                    cursor:"pointer",
+                    itemclick: this.toggleDataSeries2
+                },
+                data:[]    		
+    		}
+                       
         }
 
     }
@@ -102,7 +124,7 @@ class Dashboard extends React.Component {
                 xValueType: "dateTime",
                 dataPoints: data.reduce((res, d) => {
 
-                    res.push({ x: new Date(d.timeStamp), y: d.averageSpeedPerLane })
+                    res.push({ x: new Date(d.timeStamp), y:d.averageSpeedPerLane})
                     return res;
                 }, [])
             }
@@ -114,6 +136,42 @@ class Dashboard extends React.Component {
         this.setState({ options: someProperty });
         this.chart.render();
         this.setState({ devices: data });
+
+        var airData= await BaseService.getAirQualityData("intersection-1");
+        var intersection1graph= [];
+
+        airData.map((el)=>{
+            intersection1graph.push({x:new Date(el.rawDate), y:el.airQualityIndex})
+        });
+        
+        var airint2Data= await BaseService.getAirQualityData("intersection-2");
+        var intersection2graph= [];
+
+        airint2Data.map((el)=>{
+            intersection2graph.push({x:new Date(el.rawDate), y:el.airQualityIndex})
+        });
+        
+
+        let graphElements2 = [];
+
+        graphElements2.push({
+            type: "spline",
+            name: "intersection-1",
+            showInLegend: true,
+            xValueType: "dateTime",
+            dataPoints: intersection1graph
+        });
+        graphElements2.push({
+            type: "spline",
+            name: "intersection-2",
+            showInLegend: true,
+            xValueType: "dateTime",
+            dataPoints: intersection2graph
+        });
+        var airProperty = this.state.optionsAir;
+        airProperty.data = graphElements2;
+        this.setState({optionsAir:airProperty }); 
+        this.chart2.render();
     }
 
     toggleDataSeries = (e) => {
@@ -124,6 +182,16 @@ class Dashboard extends React.Component {
             e.dataSeries.visible = true;
         }
         this.chart.render();
+    }
+
+    toggleDataSeries2 = (e) => {
+        if (typeof (e.dataSeries.visible) === "undefined" || e.dataSeries.visible) {
+            e.dataSeries.visible = false;
+        }
+        else {
+            e.dataSeries.visible = true;
+        }
+        this.chart2.render();
     }
 
     render() {
@@ -139,7 +207,11 @@ class Dashboard extends React.Component {
                             </ListGroup>
                         </div>
                     </div>
-                    <div class="secondItem">2 za live data dijagram</div>
+                    <div class="secondItem" style={{ padding:'15px' }}>
+                    <CanvasJSChart options={this.state.optionsAir}
+                        onRef={ref => this.chart2 = ref}
+                    />
+                    </div>
                 </div>
                 <div class="secondPart" style={{ paddingRight: '15px' }}>
                     <CanvasJSChart options={this.state.options}

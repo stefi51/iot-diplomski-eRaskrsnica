@@ -53,14 +53,14 @@ public class IntersectionDevice : Device
                 double minTemperature = 20;
                 var rand = new Random();
                 var currentTemp = minTemperature + rand.NextDouble() * 15;
-                var averageSpeed = (rand.NextDouble() * 100) / _sensorData.NumberOfLanes;
-                var vehiclePerHour = (rand.NextDouble() * 1000) * _sensorData.NumberOfLanes;
-
+                var averageSpeed = (rand.NextDouble() * 50) / _sensorData.NumberOfLanes;
+                var vehiclePerHour = (rand.NextDouble() * 500) * _sensorData.NumberOfLanes;
+                
                 _sensorData.Temperature = currentTemp;
                 _sensorData.Humidity = 60 + rand.NextDouble() * 20;
                 _sensorData.AirQualityIndex = (int)((_sensorData.NumberOfLanes * currentTemp) / (rand.NextDouble() * 2));
                 _sensorData.AverageSpeedPerLane = averageSpeed;
-                _sensorData.VehiclePerHour = (int)vehiclePerHour;
+                _sensorData.VehiclePerHour =  (int)vehiclePerHour;
                 _sensorData.TimeStamp = DateTime.Now;
 
                 // Create JSON message.
@@ -228,6 +228,8 @@ public class IntersectionDevice : Device
         _sensorData = new DeviceSensorDataDto()
         {
             NumberOfLanes = numberOfLanes,
+            AverageSpeedPerLane = 0,
+            VehiclePerHour = 0
         };
 
         var twinProperties = new TwinCollection();

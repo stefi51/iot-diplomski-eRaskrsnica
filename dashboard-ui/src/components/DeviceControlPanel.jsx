@@ -5,6 +5,7 @@ import Switch from "react-switch";
 import CanvasJSReact from '@canvasjs/react-charts';
 import DataTable from 'react-data-table-component';
 import { Image, Container, Button } from 'react-bootstrap';
+import { useEffect, useState } from "react"
 var CanvasJSChart = CanvasJSReact.CanvasJSChart;
 
 class DevicePanel extends React.Component {
@@ -21,7 +22,9 @@ class DevicePanel extends React.Component {
       devicesData: [],
       messageInput: "",
       carAccidentReported:true,
-      refinedData:[]
+      refinedData:[],
+      delay: 2000,
+      count:0
     }
     this.handleChange = this.handleChange.bind(this);
     this.handleChangeInput = this.handleChangeInput.bind(this);
@@ -75,6 +78,11 @@ class DevicePanel extends React.Component {
   }
 
   componentDidMount = async () => {
+
+    var devices = await BaseService.getConnectedDevices();
+    var device = devices.filter((x)=> x.deviceId== this.state.device.deviceId);
+    this.setState({isActive: device.isActive})
+
     var data = await BaseService.getDeviceData(this.state.device.deviceId);
     this.setState({ carAccidentReported: data[0].body.reportedAccident })
     this.setState({ devicesData: data })
@@ -82,15 +90,42 @@ class DevicePanel extends React.Component {
     var refinedData= await BaseService.getRefinedData(this.state.device.deviceId);
     this.setState({refinedData: refinedData})
 
+    this.interval = setInterval(this.tick, this.state.delay);
+
+  }
+
+
+  componentDidUpdate= async(prevProps, prevState)=> {
+    if (prevState.delay !== this.state.delay) {
+      clearInterval(this.interval);
+
+      var devices = await BaseService.getConnectedDevices();
+      var device = devices.filter((x)=> x.deviceId== this.state.device.deviceId);
+      this.setState({isActive: device.isActive})
+  
+      var data = await BaseService.getDeviceData(this.state.device.deviceId);
+      this.setState({ carAccidentReported: data[0].body.reportedAccident })
+      this.setState({ devicesData: data })
+  
+      var refinedData= await BaseService.getRefinedData(this.state.device.deviceId);
+      this.setState({refinedData: refinedData})
+      this.interval = setInterval(this.tick, this.state.delay);
+    }
+
+  }
+
+  tick = () => {
+    this.setState({
+      count: this.state.count + 1
+    });
   }
 
    onResolveClick = async () => {
     await BaseService.resolveAccident(this.state.device.deviceId);
     this.setState({carAccidentReported: false})
   };
-
-
   render() {
+
     const columns = [
       {
         name: 'Vehicle per hour',

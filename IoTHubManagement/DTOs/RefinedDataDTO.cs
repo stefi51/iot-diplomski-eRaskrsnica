@@ -31,4 +31,9 @@ public enum AirQuality
 
 public record AirQualityDto(
     string deviceId,
-    AirQuality? airQuality);
+    AirQuality? airQuality,
+    double Temperature,
+    double AirQualityIndex,
+    DateTime RefinedDate,
+    DateTime RawDate
+    );

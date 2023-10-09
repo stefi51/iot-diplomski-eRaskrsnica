@@ -2,6 +2,7 @@
 using System.Text.Json;
 using Azure.Messaging.EventHubs.Consumer;
 using IoTAnalytics.DTOs;
+using Microsoft.Azure.Amqp.Framing;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 
@@ -39,29 +40,33 @@ namespace IoTAnalytics
             var db = _cosmosClient.GetDatabase("device-data");
 
             var container = db.GetContainer("refined-data");
-
+            var dateTimeNow = (DateTime.UtcNow).AddSeconds(-30);
 
             try
             {
                 await foreach (PartitionEvent partitionEvent in consumer.ReadEventsAsync(ct))
                 {
 
-                    string data = Encoding.UTF8.GetString(partitionEvent.Data.Body.ToArray());
-                    Console.WriteLine($"Message body: {data}");
-
-                    var deviceId = partitionEvent.Data.SystemProperties.GetValueOrDefault("iothub-connection-device-id");
+                   var deviceId = partitionEvent.Data.SystemProperties.GetValueOrDefault("iothub-connection-device-id");
 
                     BodyDto? bodyDto = JsonSerializer.Deserialize<BodyDto?>(partitionEvent.Data.Data);
-                    
-                    var airQuality = DetermineAirQuality(bodyDto?.AirQualityIndex);
 
-                    var isRushHour = IsRushHour(bodyDto?.TimeStamp);
+                    if (partitionEvent.Data.EnqueuedTime.UtcDateTime > dateTimeNow)
+                    {
+                        string data = Encoding.UTF8.GetString(partitionEvent.Data.Body.ToArray());
+                        Console.WriteLine($"Processed.DeviceId:{deviceId}.Message body: {data}");
 
-                    var intersectionState = DetermineState(bodyDto, isRushHour);
+                        var airQuality = DetermineAirQuality(bodyDto?.AirQualityIndex);
 
-                    var refinedData = new RefinedDataDto(Guid.NewGuid().ToString(), (string)deviceId, intersectionState, airQuality, DateTime.UtcNow, bodyDto);
+                        var isRushHour = IsRushHour(bodyDto?.TimeStamp);
 
-                    await container.CreateItemAsync<RefinedDataDto>(refinedData);
+                        var intersectionState = DetermineState(bodyDto, isRushHour);
+
+                        var refinedData = new RefinedDataDto(Guid.NewGuid().ToString(), (string)deviceId,
+                            intersectionState, airQuality, DateTime.UtcNow, bodyDto);
+
+                        await container.CreateItemAsync<RefinedDataDto>(refinedData);
+                    }
                 }
             }
             catch (TaskCanceledException)
@@ -71,7 +76,7 @@ namespace IoTAnalytics
 
         private static IntersectionState DetermineState(BodyDto? bodyDto, bool isRushHour)
         {
-            if (bodyDto.ReportedAccident && bodyDto.AverageSpeedPerLane < 5)
+            if (bodyDto.ReportedAccident && bodyDto.AverageSpeedPerLane < 10)
                 return IntersectionState.Blocked;
 
             if (isRushHour)

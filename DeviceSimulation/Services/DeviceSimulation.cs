@@ -12,14 +12,18 @@ public class DeviceSimulation : IDeviceSimulation
 
     public DeviceSimulation(ILogger<DeviceSimulation> logger,
         IOptions<DeviceOneSettingsDto> deviceSettings1,
-        IOptions<DeviceTwoSettingsDto> deviceSettings2)
+        IOptions<DeviceTwoSettingsDto> deviceSettings2,
+        IOptions<DeviceThirdSettingsDto> deviceSettings3,
+        IOptions<Device4ThSettingsDto> deviceSettings4)
     {
         _logger = logger;
 
         _devices = new List<Device>
         {
             new IntersectionDevice(deviceSettings1, logger),
-            new IntersectionDevice(deviceSettings2, logger)
+           // new IntersectionDevice(deviceSettings2, logger),
+            new IntersectionDevice(deviceSettings3, logger),
+            new IntersectionDevice(deviceSettings4, logger)
         };
     }
 

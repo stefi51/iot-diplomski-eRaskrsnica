@@ -25,8 +25,8 @@ class Dashboard extends React.Component {
                 axisX: {
                     title: "Timeline",
                     intervalType: "minutes",
-                    valueFormatString: "YYYY-MM-DD HH:mm:ss",
-                    labelMaxWidth: 1000,
+                    valueFormatString: "hh TT K",                   
+                    interval: 30
                 },
                 toolTip: {
                     shared: true
@@ -129,6 +129,9 @@ class Dashboard extends React.Component {
                 name: group,
                 showInLegend: true,
                 xValueType: "dateTime",
+                intervalType: "minutes",
+                valueFormatString: "hh TT K",                   
+                interval: 30,
                 dataPoints: data.reduce((res, d) => {
 
                     res.push({ x: new Date(d.timeStamp), y: d.averageSpeedPerLane })
@@ -137,6 +140,7 @@ class Dashboard extends React.Component {
             }
             )
         )
+        console.log(graphElements);
         var someProperty = this.state.options;
         someProperty.data = graphElements;
         this.setState({ options: someProperty });
@@ -150,12 +154,20 @@ class Dashboard extends React.Component {
             intersection1graph.push({ x: new Date(el.rawDate), y: el.airQualityIndex })
         });
 
-        var airint2Data = await BaseService.getAirQualityData("intersection-2");
+        var airint2Data = await BaseService.getAirQualityData("raskrsnica-3");
         var intersection2graph = [];
 
         airint2Data.map((el) => {
             intersection2graph.push({ x: new Date(el.rawDate), y: el.airQualityIndex })
         });
+
+        var airData3 = await BaseService.getAirQualityData("Vozda-Karadjordja-1");
+        var intersection3graph = [];
+
+        airData3.map((el) => {
+            intersection3graph.push({ x: new Date(el.rawDate), y: el.airQualityIndex })
+        });
+
 
 
         let graphElements2 = [];
@@ -169,10 +181,17 @@ class Dashboard extends React.Component {
         });
         graphElements2.push({
             type: "spline",
-            name: "intersection-2",
+            name: "raskrsnica-3",
             showInLegend: true,
             xValueType: "dateTime",
             dataPoints: intersection2graph
+        });
+        graphElements2.push({
+            type: "spline",
+            name: "Vozda-Karadjordja-1",
+            showInLegend: true,
+            xValueType: "dateTime",
+            dataPoints: intersection3graph
         });
         var airProperty = this.state.optionsAir;
         airProperty.data = graphElements2;

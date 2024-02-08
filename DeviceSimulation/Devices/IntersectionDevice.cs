@@ -1,6 +1,7 @@
 ﻿using DeviceSimulation.DTOs;
 using Microsoft.Azure.Devices.Client;
 using Microsoft.Azure.Devices.Shared;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Text;
 using System.Text.Json;
@@ -103,7 +104,7 @@ public class IntersectionDevice : Device
         _cancelTokenSource?.Cancel();
         _cancelTokenSource = new CancellationTokenSource();
         _token = _cancelTokenSource.Token;
-
+        _logger.LogInformation($"Pokrenut uredjaj: {DeviceId}.");
         SimulateDeviceSensors();
     }
 
@@ -113,6 +114,7 @@ public class IntersectionDevice : Device
         var twinProperties = new TwinCollection();
         twinProperties["IsActive"] = this.IsActive;
         await DeviceClient.UpdateReportedPropertiesAsync(twinProperties);
+        _logger.LogInformation($"Zaustavljen uredjaj: {DeviceId}.");
         _cancelTokenSource?.Cancel();
     }
 
@@ -124,7 +126,7 @@ public class IntersectionDevice : Device
     /// <returns></returns>
     private Task<MethodResponse> StopDeviceFromCloud(MethodRequest methodRequest, object userContext)
     {
-        _logger.LogInformation($"Stop device: {DeviceId} request from cloud.");
+        _logger.LogInformation($"Direktna metoda sa oblaka.Zaustavi uredjaj: {DeviceId}.");
 
         StopDeviceAsync();
 
@@ -142,7 +144,7 @@ public class IntersectionDevice : Device
     /// <returns></returns>
     private Task<MethodResponse> StartDeviceFromCloud(MethodRequest methodRequest, object userContext)
     {
-        _logger.LogInformation($"Start device: {DeviceId} request from cloud.");
+        _logger.LogInformation($"Direktna metoda sa oblaka.Pokreni uredjaj: {DeviceId}.");
 
         StartDeviceAsync();
         string result = $"{{\"result\":\"Executed direct method: {methodRequest.Name}\"}}";

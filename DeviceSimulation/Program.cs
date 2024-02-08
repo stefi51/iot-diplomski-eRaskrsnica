@@ -14,6 +14,12 @@ builder.Services.AddOptions<DeviceOneSettingsDto>()
 builder.Services.AddOptions<DeviceTwoSettingsDto>()
     .BindConfiguration(DeviceTwoSettingsDto.SectionName);
 
+builder.Services.AddOptions<DeviceThirdSettingsDto>()
+    .BindConfiguration(DeviceThirdSettingsDto.SectionName);
+
+builder.Services.AddOptions<Device4ThSettingsDto>()
+    .BindConfiguration(Device4ThSettingsDto.SectionName);
+
 builder.Services.AddSingleton<IDeviceSimulation, DeviceSimulation.Services.DeviceSimulation>();
 builder.Logging.AddConsole();
 
